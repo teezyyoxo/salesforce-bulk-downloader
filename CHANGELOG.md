@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.3] - 2026-07-06
+
+### Fixed
+
+- Fixed missing account name extraction by adding a dedicated `getAccountName()` helper.
+- Stripped attached Salesforce action labels such as `Preview` from record title fallbacks and folder name tokens.
+- Preserved original attachment filenames and prevented file extensions from being lost in filename candidate cleanup.
+
+## [0.3.2] - 2026-07-06
+
+### Fixed
+
+- Fixed account name cleanup when falling back to the record title and removed attached Salesforce action labels like `Preview` from folder path values.
+- Preserved original attachment filenames instead of inferring or stripping extensions.
+- Improved `Case Number` extraction for download folder tokens when Salesforce field values contain embedded action text.
+
+## [0.3.1] - 2026-07-06
+
+### Fixed
+
+- Restored account/case folder naming by stripping Salesforce field action text such as `Preview`, `Download`, and `Open` from extracted field values.
+- Restored `Case Number` extraction for download folder tokens when Salesforce renders action labels inside output field containers.
+- Improved filename candidate cleanup by removing Salesforce action suffixes from file row labels.
+
 ## [0.3.0] - 2026-07-06
 
 ### Added

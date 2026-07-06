@@ -54,7 +54,7 @@ Leave the filename pattern blank to download files with their original Salesforc
 
 | ID | Idea | Status | Notes |
 | --- | --- | --- | --- |
-| TD-001 | Save downloads into an account/case folder naming convention | In progress | Currently, the folder naming is broken as the case number is not being parsed and written to the folder name (at all) and "Preview" is being affixed to the end of the folder name. `cleanFileNameCandidate` and `stripFieldActionText` functions are the primary culprits. |
+| TD-001 | Save downloads into an account/case folder naming convention | Done | Fixed folder naming by adding a dedicated account extraction helper and stripping Salesforce action text such as `Preview`, `Download`, and `Open` from record values. |
 | TD-002 | Auto-zip all selected Salesforce files | Planned | Likely needs a temporary download/package step before placing the archive in Downloads. |
 | TD-003 | Expand settings for default folder and filename templates | In progress | Current settings support subfolder and filename patterns; future work can add richer Salesforce record tokens. |
 | TD-004 | Improve Salesforce file discovery across more Files tab layouts | Planned | Validate against Account, Case, and other object related lists, including lazy-loaded rows. |

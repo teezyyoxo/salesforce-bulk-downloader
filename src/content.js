@@ -217,7 +217,11 @@ function getRecordName() {
     || document.querySelector("h1")?.textContent
     || document.title;
 
-  return cleanText(title).replace(/\s+\|.*$/, "");
+  return stripFieldActionText(cleanText(title).replace(/\s+\|.*$/, ""));
+}
+
+function getAccountName() {
+  return stripFieldActionText(getRecordFieldValue(["Account Name", "Account"]) || getRecordName());
 }
 
 function getRecordContext() {
@@ -234,11 +238,7 @@ function getRecordContext() {
 }
 
 function getCaseNumberRaw() {
-  return getRecordFieldValue(["Case Number"]) || getCaseNumberFromTitle();
-}
-
-function getAccountName() {
-  return getRecordFieldValue(["Account Name", "Account"]) || getRecordName();
+  return stripFieldActionText(getRecordFieldValue(["Case Number"]) || getCaseNumberFromTitle());
 }
 
 function getRecordFieldValue(labels) {
@@ -393,25 +393,20 @@ function cleanFieldValue(node) {
 
 function stripFieldActionText(value) {
   return cleanText(value)
-    .replace(/^(?:Preview|Open)(?:\s+record)?\s+/i, "")
-    .replace(/(?:Preview|Open)(?:\s+record)?(?:\s+in\s+new\s+window)?$/i, "")
+    .replace(/^(?:Preview|Download|Open)(?:\s+record)?(?:\s+in\s+new\s+window)?(?:[\s:–—\-\.]+)?/i, "")
+    .replace(/(?:[\s:–—\-\.]*)?(?:Preview|Download|Open)(?:\s+record)?(?:\s+in\s+new\s+window)?(?:[\s:–—\-\.]*)?$/i, "")
     .trim();
 }
 
 function cleanFileNameCandidate(value) {
   const original = cleanText(value);
-  const inferredExtension = inferExtensionFromTypePrefix(original);
   const cleaned = original
     .replace(/^(?:Adobe PDF|PDF|Word document|Microsoft Word|Excel spreadsheet|Microsoft Excel|PowerPoint presentation|Microsoft PowerPoint|Image|PNG image|JPEG image)\s*/i, "")
-    .replace(/^Preview\s+/i, "")
-    .replace(/^Download\s+/i, "")
-    .replace(/\s+Preview$/i, "")
-    .replace(/\s+Download$/i, "")
+    .replace(/^(?:Preview|Download)\s+/i, "")
+    .replace(/(?:[\s:–—\-\.]*)?(?:Preview|Download)(?:[\s:–—\-\.]*)?$/i, "")
     .trim();
 
-  return inferredExtension && cleaned && !hasFileExtension(cleaned)
-    ? `${cleaned}.${inferredExtension}`
-    : cleaned;
+  return cleaned;
 }
 
 function isActionText(value) {
