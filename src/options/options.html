@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Salesforce Bulk File Downloader Settings</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Salesforce Bulk File Downloader</p>
+          <h1>Download defaults</h1>
+          <p>Choose how files are named and grouped when Chrome saves Salesforce attachments.</p>
+        </div>
+        <span class="status" id="saveStatus" aria-live="polite">Saved</span>
+      </section>
+
+      <form class="panel" id="settingsForm">
+        <label class="field">
+          <span>Downloads subfolder</span>
+          <input name="downloadSubfolder" autocomplete="off" placeholder="Salesforce Files/{accountName} - {caseNumber}">
+          <small>Relative to Chrome's Downloads folder. Supports {accountName}, {customerName}, {caseNumber}, {caseNumberRaw}, {recordName}, and {recordId}.</small>
+        </label>
+
+        <label class="field">
+          <span>Filename pattern</span>
+          <input name="filenamePattern" autocomplete="off" placeholder="Leave blank to keep original filenames">
+          <small>Leave blank to keep Salesforce's original filenames. Optional tokens: {index}, {name}, {ext}, {accountName}, {customerName}, {caseNumber}, {caseNumberRaw}, and {recordName}.</small>
+        </label>
+
+        <div class="grid">
+          <label class="field">
+            <span>Existing files</span>
+            <select name="conflictAction">
+              <option value="uniquify">Keep both</option>
+              <option value="overwrite">Replace existing</option>
+              <option value="prompt">Ask every time</option>
+            </select>
+          </label>
+
+          <label class="switch">
+            <input type="checkbox" name="promptForEachDownload">
+            <span>
+              <strong>Prompt for each download</strong>
+              <small>Useful while testing; slower for large file sets.</small>
+            </span>
+          </label>
+        </div>
+
+        <label class="switch disabled">
+          <input type="checkbox" name="autoZip" disabled>
+          <span>
+            <strong>Auto-zip files</strong>
+            <small>Planned for a later version with a temporary packaging flow.</small>
+          </span>
+        </label>
+
+        <label class="switch">
+          <input type="checkbox" name="darkMode">
+          <span>
+            <strong>Dark mode</strong>
+            <small>Use a darker appearance for this settings page.</small>
+          </span>
+        </label>
+
+        <footer>
+          <button type="button" class="secondary" id="resetButton">Reset</button>
+          <button type="submit">Save settings</button>
+        </footer>
+      </form>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>

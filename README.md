@@ -1,0 +1,52 @@
+# Salesforce Bulk File Downloader
+
+A Manifest V3 Chrome extension that adds a native-looking **Download All** button to Salesforce Lightning Files related lists. See roadmap for current development status.
+
+## Load locally
+
+1. Open `chrome://extensions`.
+2. Turn on **Developer mode**.
+3. Click **Load unpacked**.
+4. Select this folder.
+
+## How it works
+
+- The content script looks for a visible Salesforce Files related list and appends **Download All** beside the standard **Add Files** action.
+- When clicked, it collects visible Salesforce file links and converts ContentDocument/ContentVersion record links into Salesforce Shepherd download URLs.
+- The background service worker starts the downloads through `chrome.downloads`, which keeps Salesforce session cookies attached.
+
+## Current limits
+
+- Chrome can only save into the browser's configured Downloads location or a relative subfolder inside it.
+- The extension downloads files individually. Auto-zip is represented in settings as a disabled roadmap option.
+- It downloads files that are present in the current Files list DOM. If Salesforce lazy-loads more rows, scroll/load them first.
+
+## Settings
+
+Open the extension popup and choose **Open settings** to customize:
+
+- Downloads subfolder, relative to Chrome Downloads
+- Filename pattern, optionally blank to keep original filenames
+- Existing-file behavior
+- Whether Chrome prompts for each download
+
+Supported tokens include `{accountName}`, `{customerName}`, `{caseNumber}`, `{caseNumberRaw}`, `{recordName}`, `{recordId}`, `{index}`, `{name}`, and `{ext}` depending on the field.
+
+For Case downloads, a folder pattern such as `Salesforce Files/{accountName} - {caseNumber}` produces names like `Salesforce Files/ABC Company - 36258`. The `{caseNumber}` token reads the Salesforce UI label `Case Number` and trims leading zeroes; use `{caseNumberRaw}` if you need the original Salesforce value, such as `00065655`. The `{customerName}` token is kept as an alias for `{accountName}`.
+
+Leave the filename pattern blank to download files with their original Salesforce filenames as shown in the Files list.
+
+## Roadmap
+
+| ID | Idea | Status | Notes |
+| --- | --- | --- | --- |
+| TD-001 | Save downloads into an account/case folder naming convention | In progress | Currently, the folder naming is broken as the case number is not being parsed and written to the folder name (at all) and "Preview" is being affixed to the end of the folder name. cleanFileNameCandidate and stripFieldActionText functions are the primary culprits. |
+| TD-002 | Auto-zip all selected Salesforce files | Planned | Likely needs a temporary download/package step before placing the archive in Downloads. |
+| TD-003 | Expand settings for default folder and filename templates | In progress | Current settings support subfolder and filename patterns; future work can add richer Salesforce record tokens. |
+| TD-004 | Improve Salesforce file discovery across more Files tab layouts | Planned | Validate against Account, Case, and other object related lists, including lazy-loaded rows. |
+| TD-005 | Add download progress and completion feedback | Planned | Surface active, completed, and failed downloads in the popup or page toast. |
+| TD-006 | Package extension for release | Planned | Add icons, screenshots, release packaging, and Chrome Web Store metadata. |
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).

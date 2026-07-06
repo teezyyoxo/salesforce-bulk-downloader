@@ -1,0 +1,72 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [0.3.0] - 2026-07-06
+
+### Added
+
+- Added a Dark mode setting for the options page.
+- Added light and dark theme variables for the settings UI.
+
+## [0.2.5] - 2026-07-06
+
+### Fixed
+
+- Preferred clean Salesforce field attributes such as `title` and `aria-label` when extracting Account values.
+- Stripped Salesforce lookup action text such as leading or trailing `Preview` from folder token values.
+- Improved `Case Number` lookup by walking from the visible label to the nearest output field container.
+
+## [0.2.4] - 2026-07-06
+
+### Fixed
+
+- Improved original filename extraction so Salesforce file-type labels like `Adobe PDF` and `Word document` are not prefixed onto filenames.
+- Preserved file extensions when Salesforce exposes a filename in the Files row, with a fallback extension inference for concatenated type labels.
+- Removed concatenated trailing Salesforce action text like `Preview` from account names.
+- Restored Case Number extraction by reading values from the nearest visible Salesforce field container.
+
+## [0.2.3] - 2026-07-06
+
+### Fixed
+
+- Restored deterministic multi-file downloads by removing the browser filename hook that could collapse Salesforce Shepherd downloads into duplicate names.
+- Kept blank filename patterns using the original filename captured from each visible Files row.
+- Filtered Salesforce field extraction to visible record fields so folder names update correctly after navigating to a different customer or Case in Lightning.
+- Improved file and account-name cleanup for Salesforce action text such as `Preview`, `Download`, and `Open`.
+
+## [0.2.2] - 2026-07-06
+
+### Fixed
+
+- Removed trailing Salesforce action text such as `Preview` from extracted account names.
+- Changed the default filename pattern to blank so downloads keep their original Salesforce filenames.
+- Fixed blank filename pattern handling in settings so it no longer falls back to a generated `{index}-{name}` pattern.
+
+## [0.2.1] - 2026-07-06
+
+### Changed
+
+- Switched the default Case folder template to use `{accountName}` instead of the placeholder-style `{customerName}` token.
+- Kept `{customerName}` as an alias for `{accountName}` for convenience.
+- Improved Salesforce Lightning field extraction for values rendered in `slot="outputField"`, including the `Case Number` UI field.
+- Clarified README token wording and updated roadmap item `TD-001`.
+
+## [0.2.0] - 2026-07-06
+
+### Added
+
+- Added `{customerName}`, `{caseNumber}`, and `{caseNumberRaw}` template tokens for download folder and filename patterns.
+- Updated the default download subfolder template to `Salesforce Files/{customerName} - {caseNumber}`.
+- Documented the customer/case folder naming convention and updated roadmap item `TD-001`.
+
+## [0.1.0] - 2026-07-06
+
+### Added
+
+- Created the initial Manifest V3 Chrome extension scaffold.
+- Added a Salesforce content script that injects a native-looking **Download All** button beside **Add Files** on Files related lists.
+- Added background download handling through `chrome.downloads`.
+- Added a styled settings page for download subfolder, filename pattern, conflict behavior, and prompt behavior.
+- Added a popup with quick access to settings.
+- Documented local extension loading, current limits, and roadmap items.
