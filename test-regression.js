@@ -37,7 +37,10 @@ function extractFunction(name) {
 
 function buildFunction(name) {
   const body = extractFunction(name);
-  const wrapper = `function cleanText(value) { return String(value || '').replace(/\\s+/g, ' ').trim(); }\n${body}\nreturn ${name};`;
+  const wrapper = `function cleanText(value) { return String(value || '').replace(/\\s+/g, ' ').trim(); }
+function hasFileExtension(value) { return /\\.[a-zA-Z0-9]{1,12}$/.test(cleanText(value)); }
+${body}
+return ${name};`;
   return new Function(wrapper)();
 }
 
@@ -57,7 +60,9 @@ const fileCases = [
   { input: 'Adobe PDF Document.pdf', expected: 'Document.pdf' },
   { input: 'Document', expected: 'Document' },
   { input: 'DocumentPreview.pdf', expected: 'DocumentPreview.pdf' },
-  { input: 'Document Preview.pdf', expected: 'Document Preview.pdf' }
+  { input: 'Document Preview.pdf', expected: 'Document Preview.pdf' },
+  { input: 'Image fileimage001', expected: 'image001' },
+  { input: 'ZIP filetravelers-prod-bigid-support-package-2026-06-23_14-41-19', expected: 'travelers-prod-bigid-support-package-2026-06-23_14-41-19' }
 ];
 
 console.log('Running regression tests...');

@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.6] - 2026-07-07
+
+### Fixed
+
+- Fixed per-file folder assignment so downloads use each file's own customer/case context.
+- Scoped Salesforce record extraction to the current Files panel to prevent mixed-case downloads.
+- Preserved existing filename and extension behavior while correcting folder routing.
+
+## [0.3.5] - 2026-07-07
+
+### Fixed
+
+- Bumped extension version to `0.3.5`.
+- Preserved Salesforce-provided filenames and extensions for downloaded files without additional renaming.
+- Retained account/case folder naming behavior while avoiding filename modification.
+
+## [0.3.4] - 2026-07-07
+
+### Fixed
+
+- Stopped custom filename rewriting so downloads use Salesforce-provided filenames and extensions when possible.
+- Continued preserving account/case folder naming while avoiding file name changes for downloaded attachments.
+
 ## [0.3.3] - 2026-07-06
 
 ### Fixed

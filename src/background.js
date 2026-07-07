@@ -55,22 +55,27 @@ async function downloadAllFiles(payload, sender) {
   }
 
   const tabUrl = sender?.tab?.url || payload?.pageUrl || "";
-  const recordName = sanitizeSegment(payload?.recordName || getRecordNameFromUrl(tabUrl) || "Salesforce Record");
-  const caseNumberRaw = sanitizeSegment(payload?.caseNumberRaw || payload?.caseNumber || "");
-  const caseNumber = sanitizeSegment(trimLeadingZeroes(caseNumberRaw));
-  const accountName = sanitizeSegment(payload?.accountName || payload?.customerName || recordName);
-  const subfolder = renderTemplate(settings.downloadSubfolder, {
-    customerName: accountName,
-    accountName,
-    caseNumber,
-    caseNumberRaw,
-    recordName,
-    recordId: payload?.recordId || "record"
-  });
+  const pageRecordName = sanitizeSegment(payload?.recordName || getRecordNameFromUrl(tabUrl) || "Salesforce Record");
+  const pageCaseNumberRaw = sanitizeSegment(payload?.caseNumberRaw || payload?.caseNumber || "");
+  const pageCaseNumber = sanitizeSegment(trimLeadingZeroes(pageCaseNumberRaw));
+  const pageAccountName = sanitizeSegment(payload?.accountName || payload?.customerName || pageRecordName);
 
   const downloadIds = [];
 
   for (const [index, file] of files.entries()) {
+    const fileAccountName = sanitizeSegment(file.accountName || file.customerName || pageAccountName);
+    const fileCaseNumberRaw = sanitizeSegment(file.caseNumberRaw || file.caseNumber || pageCaseNumberRaw);
+    const fileCaseNumber = sanitizeSegment(trimLeadingZeroes(fileCaseNumberRaw));
+    const fileRecordName = sanitizeSegment(file.recordName || pageRecordName);
+    const subfolder = renderTemplate(settings.downloadSubfolder, {
+      customerName: fileAccountName,
+      accountName: fileAccountName,
+      caseNumber: fileCaseNumber,
+      caseNumberRaw: fileCaseNumberRaw,
+      recordName: fileRecordName,
+      recordId: file.recordId || payload?.recordId || "record"
+    });
+
     const fileName = buildFilename(settings.filenamePattern, file, index + 1);
     const filename = joinDownloadPath(subfolder, fileName);
 

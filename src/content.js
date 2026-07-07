@@ -183,32 +183,35 @@ function toDownloadUrl(href) {
 
 function getFileName(link) {
   const row = link.closest("tr, li, .slds-hint-parent, .slds-grid") || link;
-  const titledCandidates = [...row.querySelectorAll('a[title], span[title], lightning-formatted-text[title], [data-file-name], [data-output-element-id="output-field"]')]
-    .filter(isVisible)
-    .flatMap((node) => [
-      node.getAttribute("data-file-name"),
-      node.getAttribute("title"),
-      node.textContent
-    ]);
-  const candidates = [
-    ...titledCandidates,
+
+  const rawCandidates = [
     link.getAttribute("download"),
     link.getAttribute("title"),
     link.getAttribute("aria-label"),
-    link.textContent
-  ];
+    ...[...row.querySelectorAll('[data-file-name], [data-output-element-id="output-field"], a[title], span[title], lightning-formatted-text[title]')]
+      .filter(isVisible)
+      .flatMap((node) => [
+        node.getAttribute("data-file-name"),
+        node.getAttribute("title"),
+        node.textContent
+      ])
+  ]
+    .map(cleanText)
+    .filter(Boolean);
 
-  const cleanedCandidates = candidates
-    .map(cleanFileNameCandidate)
-    .filter((candidate) => candidate && !isActionText(candidate) && !isFileTypeText(candidate));
+  const extensionCandidate = rawCandidates.find(hasFileExtension);
+  const preferredCandidate = rawCandidates.find((candidate) => !isActionText(candidate) && !isFileTypeText(candidate));
+  const fallbackCandidate = rawCandidates[0];
 
-  const extensionCandidate = cleanedCandidates.find(hasFileExtension);
-  const fileName = extensionCandidate
-    || cleanedCandidates.sort(compareFileNameCandidates)[0]
-    || getDownloadFilenameCandidate(link)
-    || `Salesforce-File-${getDocumentIdFromUrl(link.href) || Date.now()}`;
+  if (extensionCandidate) {
+    return extensionCandidate;
+  }
 
-  return fileName;
+  if (preferredCandidate) {
+    return preferredCandidate;
+  }
+
+  return fallbackCandidate || `Salesforce-File-${getDocumentIdFromUrl(link.href) || Date.now()}`;
 }
 
 function getDownloadFilenameCandidate(link) {
@@ -230,23 +233,23 @@ function getRecordId() {
   return match?.[1] || "";
 }
 
-function getRecordName() {
-  const title = document.querySelector(".entityNameTitle")?.nextElementSibling?.textContent
-    || document.querySelector("records-highlights2 h1")?.textContent
-    || document.querySelector("h1")?.textContent
+function getRecordName(root = document) {
+  const title = root.querySelector(".entityNameTitle")?.nextElementSibling?.textContent
+    || root.querySelector("records-highlights2 h1")?.textContent
+    || root.querySelector("h1")?.textContent
     || document.title;
 
   return stripFieldActionText(cleanText(title).replace(/\s+\|.*$/, ""));
 }
 
-function getAccountName() {
-  return stripFieldActionText(getRecordFieldValue(["Account Name", "Account"]) || getRecordName());
+function getAccountName(root = document) {
+  return stripFieldActionText(getRecordFieldValue(root, ["Account Name", "Account"]) || getRecordName(root));
 }
 
-function getRecordContext() {
-  const caseNumberRaw = getCaseNumberRaw();
-  const accountName = getAccountName();
-  const recordName = getRecordName();
+function getRecordContext(root = document) {
+  const caseNumberRaw = getCaseNumberRaw(root);
+  const accountName = getAccountName(root);
+  const recordName = getRecordName(root);
 
   return {
     accountName,
@@ -256,18 +259,18 @@ function getRecordContext() {
   };
 }
 
-function getCaseNumberRaw() {
-  return stripFieldActionText(getRecordFieldValue(["Case Number", "Case #", "Case"]) || getCaseNumberFromLabelText() || getCaseNumberFromPageText() || getCaseNumberFromTitle());
+function getCaseNumberRaw(root = document) {
+  return stripFieldActionText(getRecordFieldValue(root, ["Case Number", "Case #", "Case"]) || getCaseNumberFromLabelText(root) || getCaseNumberFromPageText(root) || getCaseNumberFromTitle());
 }
 
-function getRecordFieldValue(labels) {
+function getRecordFieldValue(root, labels) {
   const normalizedLabels = labels.map((label) => label.toLowerCase());
   const fieldFromLabelNode = getRecordFieldValueFromLabelNode(normalizedLabels);
   if (fieldFromLabelNode) {
     return fieldFromLabelNode;
   }
 
-  const fieldRoots = [...document.querySelectorAll("records-record-layout-item, lightning-output-field, .slds-form-element, dl, [field-label], [data-field-label], [data-label]")]
+  const fieldRoots = [...root.querySelectorAll("records-record-layout-item, lightning-output-field, .slds-form-element, dl, [field-label], [data-field-label], [data-label]")]
     .filter((node) => isVisible(node) && fieldRootMatchesLabel(node, normalizedLabels));
 
   for (const fieldRoot of fieldRoots) {
@@ -444,11 +447,9 @@ function stripFieldActionText(value) {
 
 function cleanFileNameCandidate(value) {
   const original = cleanText(value);
-  if (hasFileExtension(original)) {
-    return original;
-  }
 
   const cleaned = original
+    .replace(/^(?:Adobe PDF|PDF|PDF file|Word document|Microsoft Word|Excel spreadsheet|Microsoft Excel|PowerPoint presentation|Microsoft PowerPoint|Image file|Image|PNG image|JPEG image|ZIP file|RAR file|HAR file|CSV file|Text file)\s*/i, "")
     .replace(/^(?:Preview|Download)\s+/i, "")
     .replace(/(?:[\s:–—\-\.]*)?(?:Preview|Download)(?:[\s:–—\-\.]*)?$/i, "")
     .trim();
