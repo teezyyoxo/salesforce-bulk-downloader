@@ -198,12 +198,31 @@ function getFileName(link) {
     link.textContent
   ];
 
-  const fileName = candidates
+  const cleanedCandidates = candidates
     .map(cleanFileNameCandidate)
-    .filter((candidate) => candidate && !isActionText(candidate) && !isFileTypeText(candidate))
-    .sort(compareFileNameCandidates)[0];
+    .filter((candidate) => candidate && !isActionText(candidate) && !isFileTypeText(candidate));
 
-  return fileName || `Salesforce-File-${getDocumentIdFromUrl(link.href) || Date.now()}`;
+  const extensionCandidate = cleanedCandidates.find(hasFileExtension);
+  const fileName = extensionCandidate
+    || cleanedCandidates.sort(compareFileNameCandidates)[0]
+    || getDownloadFilenameCandidate(link)
+    || `Salesforce-File-${getDocumentIdFromUrl(link.href) || Date.now()}`;
+
+  return fileName;
+}
+
+function getDownloadFilenameCandidate(link) {
+  const candidates = [
+    link.getAttribute("download"),
+    link.getAttribute("title"),
+    link.getAttribute("aria-label")
+  ]
+    .map(cleanText)
+    .filter(Boolean);
+
+  return candidates.find(hasFileExtension)
+    || candidates.find((candidate) => !isActionText(candidate) && !isFileTypeText(candidate))
+    || "";
 }
 
 function getRecordId() {
@@ -238,7 +257,7 @@ function getRecordContext() {
 }
 
 function getCaseNumberRaw() {
-  return stripFieldActionText(getRecordFieldValue(["Case Number"]) || getCaseNumberFromTitle());
+  return stripFieldActionText(getRecordFieldValue(["Case Number", "Case #", "Case"]) || getCaseNumberFromLabelText() || getCaseNumberFromPageText() || getCaseNumberFromTitle());
 }
 
 function getRecordFieldValue(labels) {
@@ -354,9 +373,34 @@ function readDefinitionListValue(fieldRoot, normalizedLabels) {
   return "";
 }
 
+function getCaseNumberFromLabelText() {
+  const labels = [...document.querySelectorAll('span, label, div, p, lightning-formatted-text, lightning-formatted-number, lightning-formatted-url, .slds-form-element__control, .test-id__field-label')]
+    .filter(isVisible)
+    .map((node) => cleanText(node.textContent));
+
+  for (const text of labels) {
+    const match = text.match(/(?:case(?:\s*number|\s*#)?)(?:\s*[:\-–—])?\s*(0*\d{3,})/i)
+      || text.match(/\b0*\d{3,}\b/);
+    if (match) {
+      return match[1] || match[0];
+    }
+  }
+
+  return "";
+}
+
+function getCaseNumberFromPageText() {
+  const pageText = cleanText(document.body.innerText || "");
+  const match = pageText.match(/(?:case(?:\s*number|\s*#)?)(?:\s*[:\-–—])?\s*(0*\d{3,})/i)
+    || pageText.match(/\b0*\d{3,}\b/);
+  return match?.[1] || match?.[0] || "";
+}
+
 function getCaseNumberFromTitle() {
-  const match = document.title.match(/\b0*\d{3,}\b/);
-  return match?.[0] || "";
+  const title = document.title;
+  const match = title.match(/(?:case(?:\s*#)?\s*)(0*\d{3,})/i)
+    || title.match(/\b0*\d{3,}\b/);
+  return match?.[1] || match?.[0] || "";
 }
 
 function trimLeadingZeroes(value) {
@@ -400,13 +444,16 @@ function stripFieldActionText(value) {
 
 function cleanFileNameCandidate(value) {
   const original = cleanText(value);
+  if (hasFileExtension(original)) {
+    return original;
+  }
+
   const cleaned = original
-    .replace(/^(?:Adobe PDF|PDF|Word document|Microsoft Word|Excel spreadsheet|Microsoft Excel|PowerPoint presentation|Microsoft PowerPoint|Image|PNG image|JPEG image)\s*/i, "")
     .replace(/^(?:Preview|Download)\s+/i, "")
     .replace(/(?:[\s:–—\-\.]*)?(?:Preview|Download)(?:[\s:–—\-\.]*)?$/i, "")
     .trim();
 
-  return cleaned;
+  return cleaned || original;
 }
 
 function isActionText(value) {
