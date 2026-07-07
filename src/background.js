@@ -42,6 +42,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+// Salesforce serves each file's real name and extension in the download
+// response's Content-Disposition header. Chrome surfaces that as
+// downloadItem.filename here, which lets us keep the authoritative filename
+// (extension included) while still routing the file into our folder. The
+// Files-list DOM only exposes a generic doctype icon, so this is the only
+// reliable source of the extension for images, ZIPs, and other files whose
+// Salesforce title has no extension.
+const pendingDownloads = new Map();
+
+chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
+  const info = pendingDownloads.get(downloadItem.url)
+    || pendingDownloads.get(downloadItem.finalUrl);
+
+  if (!info) {
+    return;
+  }
+
+  pendingDownloads.delete(downloadItem.url);
+  pendingDownloads.delete(downloadItem.finalUrl);
+
+  const serverName = basename(downloadItem.filename);
+  const finalName = resolveFinalName(info, serverName);
+
+  suggest({
+    filename: joinDownloadPath(info.folder, finalName),
+    conflictAction: info.conflictAction
+  });
+});
+
 async function downloadAllFiles(payload, sender) {
   const settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
   const files = Array.isArray(payload?.files) ? payload.files : [];
@@ -57,8 +86,8 @@ async function downloadAllFiles(payload, sender) {
   const tabUrl = sender?.tab?.url || payload?.pageUrl || "";
   const pageRecordName = sanitizeSegment(payload?.recordName || getRecordNameFromUrl(tabUrl) || "Salesforce Record");
   const pageCaseNumberRaw = sanitizeSegment(payload?.caseNumberRaw || payload?.caseNumber || "");
-  const pageCaseNumber = sanitizeSegment(trimLeadingZeroes(pageCaseNumberRaw));
   const pageAccountName = sanitizeSegment(payload?.accountName || payload?.customerName || pageRecordName);
+  const keepOriginalName = !String(settings.filenamePattern || "").trim();
 
   const downloadIds = [];
 
@@ -76,12 +105,23 @@ async function downloadAllFiles(payload, sender) {
       recordId: file.recordId || payload?.recordId || "record"
     });
 
-    const fileName = buildFilename(settings.filenamePattern, file, index + 1);
-    const filename = joinDownloadPath(subfolder, fileName);
+    // Register the routing/naming intent before starting the download so the
+    // onDeterminingFilename listener can match it and apply the folder without
+    // overriding Salesforce's authoritative filename + extension.
+    pendingDownloads.set(file.url, {
+      folder: subfolder,
+      keepOriginalName,
+      pattern: settings.filenamePattern,
+      file,
+      index: index + 1,
+      conflictAction: settings.conflictAction
+    });
 
+    // No `filename` here on purpose: passing one would make Chrome report our
+    // scraped name (extension-less) back to the listener instead of the
+    // server-provided one.
     const downloadId = await chrome.downloads.download({
       url: file.url,
-      filename,
       conflictAction: settings.conflictAction,
       saveAs: Boolean(settings.promptForEachDownload)
     });
@@ -92,19 +132,28 @@ async function downloadAllFiles(payload, sender) {
   return { count: downloadIds.length, downloadIds };
 }
 
-function buildFilename(pattern, file, index) {
-  if (!String(pattern || "").trim()) {
-    return sanitizeFileName(file.name || `Salesforce-File-${index}`);
+function resolveFinalName(info, serverName) {
+  const { file, index } = info;
+  const fallbackBase = `Salesforce-File-${index}`;
+  const scrapedName = sanitizeFileName(file.name || "");
+
+  if (info.keepOriginalName) {
+    // Prefer Salesforce's own filename (correct extension guaranteed); fall
+    // back to the scraped title plus the doctype-icon extension hint.
+    if (serverName) {
+      return serverName;
+    }
+    return ensureExtension(scrapedName || fallbackBase, file.ext);
   }
 
-  const fallbackName = `Salesforce-File-${index}`;
-  const originalName = sanitizeFileName(file.name || fallbackName);
-  const extension = getExtension(originalName);
-  const baseName = extension ? originalName.slice(0, -extension.length - 1) : originalName;
+  const extension = getExtension(serverName) || getExtension(scrapedName) || file.ext || "";
+  const originalBase = extension && scrapedName.toLowerCase().endsWith(`.${extension.toLowerCase()}`)
+    ? scrapedName.slice(0, -extension.length - 1)
+    : scrapedName;
 
-  const rendered = renderTemplate(pattern || DEFAULT_SETTINGS.filenamePattern, {
+  const rendered = renderTemplate(info.pattern || DEFAULT_SETTINGS.filenamePattern, {
     index: String(index).padStart(2, "0"),
-    name: baseName || fallbackName,
+    name: originalBase || fallbackBase,
     ext: extension,
     customerName: file.accountName || file.customerName || "",
     accountName: file.accountName || file.customerName || "",
@@ -113,10 +162,22 @@ function buildFilename(pattern, file, index) {
     recordName: file.recordName || ""
   });
 
-  const safeRendered = sanitizeFileName(rendered || fallbackName);
-  return extension && !safeRendered.toLowerCase().endsWith(`.${extension.toLowerCase()}`)
-    ? `${safeRendered}.${extension}`
-    : safeRendered;
+  return ensureExtension(sanitizeFileName(rendered || fallbackBase), extension);
+}
+
+function ensureExtension(name, extension) {
+  const safeName = sanitizeFileName(name);
+  const ext = String(extension || "").replace(/^\.+/, "");
+  if (!ext) {
+    return safeName;
+  }
+  return safeName.toLowerCase().endsWith(`.${ext.toLowerCase()}`)
+    ? safeName
+    : `${safeName}.${ext}`;
+}
+
+function basename(value) {
+  return String(value || "").split(/[\\/]/).pop() || "";
 }
 
 function renderTemplate(template, values) {

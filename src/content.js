@@ -78,18 +78,18 @@ async function handleDownloadAll(event) {
   button.setAttribute("aria-disabled", "true");
 
   try {
-    const filesPanel = findFilesPanel();
-    const files = collectFiles(filesPanel || document);
-    const caseNumberRaw = getCaseNumberRaw();
-    const accountName = getAccountName();
+    const scope = getScopeRoot(button);
+    const context = getRecordContext(scope);
+    const filesPanel = findFilesPanel(scope) || findFilesPanel(document);
+    const files = collectFiles(filesPanel || scope, context);
     const payload = {
       files,
       recordId: getRecordId(),
-      recordName: getRecordName(),
-      accountName,
-      customerName: accountName,
-      caseNumber: trimLeadingZeroes(caseNumberRaw),
-      caseNumberRaw,
+      recordName: context.recordName,
+      accountName: context.accountName,
+      customerName: context.accountName,
+      caseNumber: context.caseNumber,
+      caseNumberRaw: context.caseNumberRaw,
       pageUrl: location.href
     };
 
@@ -110,15 +110,29 @@ async function handleDownloadAll(event) {
   }
 }
 
-function findFilesPanel() {
-  const addFilesButton = findAddFilesButton(document);
+// Salesforce Console keeps every open record tab in the DOM at once (inactive
+// tabs are hidden, not removed). Scope all extraction to the workspace tab that
+// the clicked button lives in so fields never bleed across open Cases.
+function getScopeRoot(node) {
+  if (!node || typeof node.closest !== "function") {
+    return document;
+  }
+
+  return node.closest(".oneWorkspace")
+    || node.closest("[role='tabpanel'].oneConsoleTab, .oneConsoleTab")
+    || node.closest("[role='main']")
+    || document;
+}
+
+function findFilesPanel(root = document) {
+  const addFilesButton = findAddFilesButton(root);
   if (addFilesButton) {
     return addFilesButton.closest('[data-component-id], article, .slds-card, .forceRelatedListCardDesktop, records-lwc-related-list')
       || addFilesButton.closest(".slds-grid")
-      || document;
+      || root;
   }
 
-  const headings = [...document.querySelectorAll("h1, h2, h3, span, a")];
+  const headings = [...root.querySelectorAll("h1, h2, h3, span, a")];
   const filesHeading = headings.find((node) => cleanText(node.textContent).match(/^files(\s*\(\d+\))?$/i));
   return filesHeading?.closest('[data-component-id], article, .slds-card, .forceRelatedListCardDesktop, records-lwc-related-list') || null;
 }
@@ -128,14 +142,12 @@ function findAddFilesButton(root) {
     .find((node) => node.offsetParent !== null);
 }
 
-function collectFiles(root) {
+function collectFiles(root, context = getRecordContext(root)) {
   const links = FILE_LINK_SELECTORS
     .flatMap((selector) => [...root.querySelectorAll(selector)])
     .filter((link) => link.offsetParent !== null);
 
   const filesByUrl = new Map();
-
-  const context = getRecordContext();
 
   for (const link of links) {
     const downloadUrl = toDownloadUrl(link.href);
@@ -146,6 +158,7 @@ function collectFiles(root) {
     filesByUrl.set(downloadUrl, {
       url: downloadUrl,
       name: getFileName(link),
+      ext: getFileExtensionHint(link),
       accountName: context.accountName,
       customerName: context.accountName,
       caseNumber: context.caseNumber,
@@ -155,6 +168,34 @@ function collectFiles(root) {
   }
 
   return [...filesByUrl.values()];
+}
+
+// The real filename/extension comes from Salesforce's download response
+// (handled in the background service worker). This is only a fallback for the
+// rare case where the server sends no extension: the Files-row doctype icon
+// (e.g. .../symbols.svg#zip) names the file type for a few unambiguous formats.
+function getFileExtensionHint(link) {
+  const row = link.closest("tr, li, .slds-hint-parent, .slds-grid") || link;
+  const iconRef = [...row.querySelectorAll("svg use")]
+    .map((node) => node.getAttribute("href") || node.getAttribute("xlink:href") || "")
+    .find((href) => /doctype-sprite/i.test(href)) || "";
+  const docType = iconRef.match(/#([a-z0-9_]+)$/i)?.[1] || "";
+  return docTypeToExtension(docType);
+}
+
+function docTypeToExtension(docType) {
+  const map = {
+    zip: "zip",
+    pdf: "pdf",
+    csv: "csv",
+    txt: "txt",
+    xml: "xml",
+    html: "html",
+    excel: "xlsx",
+    word: "docx",
+    ppt: "pptx"
+  };
+  return map[String(docType || "").toLowerCase()] || "";
 }
 
 function toDownloadUrl(href) {
@@ -265,7 +306,7 @@ function getCaseNumberRaw(root = document) {
 
 function getRecordFieldValue(root, labels) {
   const normalizedLabels = labels.map((label) => label.toLowerCase());
-  const fieldFromLabelNode = getRecordFieldValueFromLabelNode(normalizedLabels);
+  const fieldFromLabelNode = getRecordFieldValueFromLabelNode(root, normalizedLabels);
   if (fieldFromLabelNode) {
     return fieldFromLabelNode;
   }
@@ -327,8 +368,8 @@ function readFieldRootValue(fieldRoot, normalizedLabels) {
   return "";
 }
 
-function getRecordFieldValueFromLabelNode(normalizedLabels) {
-  const labelNodes = [...document.querySelectorAll(".test-id__field-label, .slds-form-element__label, label, dt, span")]
+function getRecordFieldValueFromLabelNode(root, normalizedLabels) {
+  const labelNodes = [...root.querySelectorAll(".test-id__field-label, .slds-form-element__label, label, dt, span")]
     .filter((node) => isVisible(node) && normalizedLabels.includes(cleanText(node.textContent).replace(/:$/, "").toLowerCase()));
 
   for (const labelNode of labelNodes) {
@@ -376,8 +417,8 @@ function readDefinitionListValue(fieldRoot, normalizedLabels) {
   return "";
 }
 
-function getCaseNumberFromLabelText() {
-  const labels = [...document.querySelectorAll('span, label, div, p, lightning-formatted-text, lightning-formatted-number, lightning-formatted-url, .slds-form-element__control, .test-id__field-label')]
+function getCaseNumberFromLabelText(root = document) {
+  const labels = [...root.querySelectorAll('span, label, div, p, lightning-formatted-text, lightning-formatted-number, lightning-formatted-url, .slds-form-element__control, .test-id__field-label')]
     .filter(isVisible)
     .map((node) => cleanText(node.textContent));
 
@@ -392,8 +433,9 @@ function getCaseNumberFromLabelText() {
   return "";
 }
 
-function getCaseNumberFromPageText() {
-  const pageText = cleanText(document.body.innerText || "");
+function getCaseNumberFromPageText(root = document) {
+  const source = root === document ? document.body : root;
+  const pageText = cleanText(source?.innerText || source?.textContent || "");
   const match = pageText.match(/(?:case(?:\s*number|\s*#)?)(?:\s*[:\-–—])?\s*(0*\d{3,})/i)
     || pageText.match(/\b0*\d{3,}\b/);
   return match?.[1] || match?.[0] || "";

@@ -46,6 +46,7 @@ return ${name};`;
 
 const stripText = buildFunction('stripFieldActionText');
 const cleanCandidate = buildFunction('cleanFileNameCandidate');
+const docTypeToExtension = buildFunction('docTypeToExtension');
 
 const cases = [
   { input: 'ABC CompaniesPreview -', expected: 'ABC Companies' },
@@ -65,6 +66,17 @@ const fileCases = [
   { input: 'ZIP filetravelers-prod-bigid-support-package-2026-06-23_14-41-19', expected: 'travelers-prod-bigid-support-package-2026-06-23_14-41-19' }
 ];
 
+const docTypeCases = [
+  { input: 'zip', expected: 'zip' },
+  { input: 'pdf', expected: 'pdf' },
+  { input: 'excel', expected: 'xlsx' },
+  { input: 'word', expected: 'docx' },
+  { input: 'ppt', expected: 'pptx' },
+  { input: 'image', expected: '' },
+  { input: 'unknown', expected: '' },
+  { input: '', expected: '' }
+];
+
 console.log('Running regression tests...');
 let failed = false;
 
@@ -81,6 +93,14 @@ for (const { input, expected } of fileCases) {
   if (actual !== expected) {
     failed = true;
     console.error(`cleanFileNameCandidate FAILED: ${JSON.stringify(input)} => ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
+  }
+}
+
+for (const { input, expected } of docTypeCases) {
+  const actual = docTypeToExtension(input);
+  if (actual !== expected) {
+    failed = true;
+    console.error(`docTypeToExtension FAILED: ${JSON.stringify(input)} => ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
   }
 }
 

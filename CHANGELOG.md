@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-07-07
+
+### Fixed
+
+- Fixed missing file extensions on downloads (images, ZIPs, and any file whose Salesforce title has no extension were saving as extension-less "Document" files). Filenames now come from Salesforce's own download response (`Content-Disposition`) via `chrome.downloads.onDeterminingFilename`, so every file keeps its real, original name and extension.
+- Fixed cross-case contamination when multiple Case tabs are open in the Salesforce Console. All record extraction (account name, case number, record name, file discovery) is now scoped to the `.oneWorkspace` console tab that the clicked **Download All** button lives in, instead of scanning the whole document (which could pull fields and page text from other open tabs).
+
+### Added
+
+- Added a doctype-icon extension hint (`docTypeToExtension`) as a fallback for the rare case where Salesforce sends no extension, covering unambiguous types such as `zip`, `pdf`, `csv`, `xlsx`, `docx`, and `pptx`.
+- Added regression coverage for the doctype-to-extension mapping.
+
+### Changed
+
+- Custom filename patterns now derive the file extension from Salesforce's authoritative filename before falling back to scraped text.
+
 ## [0.3.6] - 2026-07-07
 
 ### Fixed

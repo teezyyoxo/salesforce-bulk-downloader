@@ -23,10 +23,7 @@ A Manifest V3 Chrome extension that adds a native-looking **Download All** butto
 
 ## Current issues
 
-| Issue | Status | Notes |
-| --- | --- | --- |
-| Files from the wrong Salesforce case can be routed into another case's folder when multiple case tabs are open | In progress | Root cause appears to be record metadata extraction from the wrong DOM scope; fixing per-file context and panel scoping. |
-| Case folder names may fall back to `Files - {caseNumber}` instead of customer/account when account extraction fails | In progress | Ensuring account name is sourced correctly from the page-level record context before folder rendering. |
+No known open issues. The account/case folder naming and filename/extension issues previously tracked here were resolved in 0.4.0 (see [CHANGELOG.md](CHANGELOG.md) and roadmap item `TD-001`).
 
 ## Settings
 
@@ -55,7 +52,7 @@ For Case downloads, a folder pattern such as `Salesforce Files/{accountName} - {
 Use `{caseNumberRaw}` if you need the original Salesforce value, such as `00065655`. The `{customerName}` token is kept as an alias for `{accountName}`.
 **Have not tested this on Account -> Files pages yet.**
 
-Leave the filename pattern blank to download files with their original Salesforce filenames and extensions as shown in the Files list when possible.
+Leave the filename pattern blank to download files with their original Salesforce filenames and extensions. The name is taken from Salesforce's own download response (`Content-Disposition`), so file extensions are preserved even for images and ZIPs whose title in the Files list has no extension.
 
 ### Regression test
 
@@ -65,7 +62,7 @@ A lightweight regression script is included at `test-regression.js` and verifies
 
 | ID | Idea | Status | Notes |
 | --- | --- | --- | --- |
-| TD-001 | Save downloads into an account/case folder naming convention | Done | Fixed folder naming by adding a dedicated account extraction helper, stripping Salesforce action text such as `Preview`, `Download`, and `Open`, improving Case Number detection, and preserving original Salesforce download filenames and extensions. |
+| TD-001 | Save downloads into an account/case folder naming convention | Done (verified 0.4.0) | Confirmed working. Folder naming uses account/case extraction scoped to the active Console workspace tab (`.oneWorkspace`) to prevent cross-case contamination, and filenames/extensions are preserved by reading Salesforce's own download response (`Content-Disposition`) rather than scraping the Files list. |
 | TD-002 | Auto-zip all selected Salesforce files | Planned | Likely needs a temporary download/package step before placing the archive in Downloads. |
 | TD-003 | Expand settings for default folder and filename templates | In progress | Current settings support subfolder and filename patterns; future work can add richer Salesforce record tokens. |
 | TD-004 | Improve Salesforce file discovery across more Files tab layouts | Planned | Validate against Account, Case, and other object related lists, including lazy-loaded rows. |
