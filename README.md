@@ -15,6 +15,15 @@ A Manifest V3 Chrome extension that adds a native-looking **Download All** butto
 - When clicked, it collects visible Salesforce file links and converts ContentDocument/ContentVersion record links into Salesforce Shepherd download URLs.
 - The background service worker starts the downloads through `chrome.downloads`, which keeps Salesforce session cookies attached.
 
+## Features
+
+- **Batch downloading** – Download multiple Salesforce files at once with a single click
+- **Intelligent duplicate detection** – Autonomously identifies and ignores actual duplicates during the download flow to prevent redundant file copies
+- **Flexible naming** – Customize downloaded filenames with template patterns (account name, case number, custom tokens, etc.) or keep original Salesforce filenames
+- **Organized folders** – Group downloads into folders by account/case naming conventions
+- **Session preservation** – Downloads maintain Salesforce session cookies for seamless authentication
+- **Customizable behavior** – Configure download location, naming patterns, and duplicate handling through extension settings
+
 ## Current limits
 
 - Chrome can only save into the browser's configured Downloads location or a relative subfolder inside it.
