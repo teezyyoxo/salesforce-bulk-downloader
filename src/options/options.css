@@ -200,11 +200,17 @@ select {
 .location-picker {
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(112px, auto);
 }
 
-.location-picker button {
-  min-width: 92px;
+.location-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.location-actions button {
+  min-height: 34px;
+  padding: 0 10px;
 }
 
 input:focus,

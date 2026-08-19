@@ -38,7 +38,7 @@ No known open issues. The account/case folder naming and filename/extension issu
 
 Open the extension popup and choose **Open settings** to customize:
 
-- Save location, selected with the Browse button; defaults to Chrome Downloads
+- Save location, selected with the Browse button; use **Use Downloads Folder** to restore Chrome's default Downloads root
 - Case download folder, relative to the selected save location
 - Filename pattern, optionally blank to keep original filenames
 - Existing-file behavior
@@ -46,7 +46,7 @@ Open the extension popup and choose **Open settings** to customize:
 
 The case-folder and filename fields show live previews using representative Salesforce data. Chrome intentionally does not expose the absolute filesystem path behind a selected directory handle, so the Save location field displays the selected folder name rather than a full path.
 
-The selected folder is persisted as a directory permission handle. If that permission is revoked, choose the folder again in settings. With a selected location, **Ask every time** cannot open an interactive conflict dialog from the service worker; use **Keep both** or **Replace existing** instead.
+The selected folder is persisted as a directory permission handle. If that permission is revoked, choose the folder again in settings. With a selected location, **Ask every time** cannot open an interactive conflict dialog from the service worker; use **Keep both** or **Replace existing** instead. **Use Downloads Folder** clears the custom handle and restores the root `~/Downloads` destination on macOS/Linux; it is never inferred from a downloaded file's subfolder. The `0.4.2` release contains this Downloads-root correction and button refinement.
 
 Supported tokens include 
 ```

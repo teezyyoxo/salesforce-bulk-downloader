@@ -33,11 +33,14 @@
         <span>Save Location</span>
         <div class="location-picker">
           <input name="saveLocationName" readonly value="Downloads" aria-describedby="saveLocationHelp">
-          <button type="button" class="secondary" id="chooseLocationButton">Browse</button>
+          <div class="location-actions">
+            <button type="button" class="secondary" id="chooseLocationButton">Browse</button>
+            <button type="button" class="secondary" id="useDownloadsButton">Use Downloads Folder</button>
+          </div>
         </div>
         <small id="saveLocationHelp">
-          Defaults to Chrome's Downloads folder (~/Downloads).<br>
-          Browse to any accessible folder on the filesystem.<br>
+          Chrome's default Downloads folder: <span id="downloadsPathDisplay">~/Downloads</span><br>
+          Browse to any accessible folder on the filesystem, or use Downloads to restore Chrome's default.<br>
           <strong>NOTE:</strong> Chrome does not expose the full absolute path of a selected folder.
         </small>
       </label>

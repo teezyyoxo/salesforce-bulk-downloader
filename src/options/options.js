@@ -34,6 +34,8 @@ const form = document.querySelector("#settingsForm");
 const saveStatus = document.querySelector("#saveStatus");
 const resetButton = document.querySelector("#resetButton");
 const chooseLocationButton = document.querySelector("#chooseLocationButton");
+const useDownloadsButton = document.querySelector("#useDownloadsButton");
+const downloadsPathDisplay = document.querySelector("#downloadsPathDisplay");
 const resetAllButton = document.querySelector("#resetAllButton");
 const themeButtons = [...document.querySelectorAll("[data-theme-choice]")];
 const resetSettingButtons = [...document.querySelectorAll("[data-reset-setting]")];
@@ -65,12 +67,19 @@ async function init() {
     ...storedSettings,
     theme: storedSettings.theme || (storedSettings.darkMode ? "dark" : DEFAULT_SETTINGS.theme)
   };
+  const locationHandle = await getLocationHandle();
+  const defaultDownloadsPath = await getDefaultDownloadsPath();
+  downloadsPathDisplay.textContent = defaultDownloadsPath;
+  if (!locationHandle) {
+    settings.saveLocationName = defaultDownloadsPath;
+  }
   applySettings(settings);
   form.addEventListener("submit", saveSettings);
   form.addEventListener("input", handleInput);
   resetButton.addEventListener("click", resetSettings);
   resetAllButton.addEventListener("click", resetAllSettings);
   chooseLocationButton.addEventListener("click", chooseLocation);
+  useDownloadsButton.addEventListener("click", useDownloads);
   for (const button of resetSettingButtons) {
     button.addEventListener("click", () => resetToastSetting(button.dataset.resetSetting));
   }
@@ -114,7 +123,9 @@ async function saveSettings(event) {
 async function resetSettings() {
   await deleteLocationHandle();
   await chrome.storage.sync.set(DEFAULT_SETTINGS);
-  applySettings(DEFAULT_SETTINGS);
+  const settings = { ...DEFAULT_SETTINGS, saveLocationName: await getDefaultDownloadsPath() };
+  applySettings(settings);
+  downloadsPathDisplay.textContent = settings.saveLocationName;
   updatePreviews();
   hasUnsavedChanges = false;
   setStatus("Saved");
@@ -127,7 +138,9 @@ async function resetAllSettings() {
 
   await deleteLocationHandle();
   await chrome.storage.sync.set(DEFAULT_SETTINGS);
-  applySettings(DEFAULT_SETTINGS);
+  const settings = { ...DEFAULT_SETTINGS, saveLocationName: await getDefaultDownloadsPath() };
+  applySettings(settings);
+  downloadsPathDisplay.textContent = settings.saveLocationName;
   updatePreviews();
   hasUnsavedChanges = false;
   setStatus("Saved");
@@ -270,6 +283,41 @@ async function chooseLocation() {
       setStatus("Folder not selected");
     }
   }
+}
+
+async function useDownloads() {
+  await deleteLocationHandle();
+  const defaultDownloadsPath = await getDefaultDownloadsPath();
+  await chrome.storage.sync.set({ saveLocationName: defaultDownloadsPath });
+  form.elements.saveLocationName.value = defaultDownloadsPath;
+  downloadsPathDisplay.textContent = defaultDownloadsPath;
+  updatePreviews();
+  hasUnsavedChanges = true;
+  setStatus("Unsaved");
+}
+
+async function getDefaultDownloadsPath() {
+  if (/Windows/i.test(navigator.userAgent)) {
+    return "C:\\Users\\<username>\\Downloads";
+  }
+
+  return "~/Downloads";
+}
+
+async function getLocationHandle() {
+  const database = await openLocationDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(LOCATION_STORE_NAME, "readonly");
+    const request = transaction.objectStore(LOCATION_STORE_NAME).get("downloadLocation");
+    request.onsuccess = () => {
+      database.close();
+      resolve(request.result || null);
+    };
+    request.onerror = () => {
+      database.close();
+      reject(request.error);
+    };
+  });
 }
 
 function handleInput(event) {

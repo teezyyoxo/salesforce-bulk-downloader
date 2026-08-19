@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2026-08-19
+
+- Bumped the extension version to `0.4.2` for the Downloads-folder regression fix.
+
+### Added
+
+- Added a stacked **Browse** / **Use Downloads Folder** location control with a direct display of Chrome's default Downloads path.
+- Added a **Use Downloads Folder** action to restore Chrome's default `~/Downloads` destination when Chrome's folder picker rejects selecting Downloads directly.
+
+### Fixed
+
+- Fixed the default Downloads display so it is never inferred from the most recent download's subfolder; macOS/Linux now consistently display `~/Downloads` when no custom location is selected.
+
 ## [0.4.1] - 2026-08-19
 
 - Bumped the extension version to `0.4.1`.
