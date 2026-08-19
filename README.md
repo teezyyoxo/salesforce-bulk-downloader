@@ -1,6 +1,7 @@
 # Salesforce Bulk File Downloader
 
 A Manifest V3 Chrome extension that adds a native-looking **Download All** button to Salesforce Lightning Files related lists. See roadmap for current development status.
+
 <img width="236" height="90" alt="image" src="https://github.com/user-attachments/assets/268eeec6-e695-4bff-89b5-56b8b6f642b8" />
 
 ## How to use
