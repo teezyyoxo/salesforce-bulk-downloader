@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Salesforce Bulk File Downloader",
   "description": "Adds a native-looking Download All button to Salesforce Files related lists.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "permissions": [
     "downloads",
     "storage"

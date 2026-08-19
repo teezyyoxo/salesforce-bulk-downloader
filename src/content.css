@@ -31,19 +31,37 @@
 }
 
 .sfd-download-all-toast {
-  background: #032d60;
+  align-items: center;
+  background: var(--sfd-toast-background, #032d60);
+  border: 1px solid var(--sfd-toast-border-color, #032d60);
   border-radius: .25rem;
-  bottom: 1rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
-  color: #fff;
+  box-shadow: 0 8px var(--sfd-toast-shadow-blur, 24px) rgba(0, 0, 0, var(--sfd-toast-shadow-opacity, .18));
+  color: var(--sfd-toast-text-color, #fff);
+  display: flex;
   font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   max-width: 28rem;
   padding: .75rem 1rem;
   position: fixed;
   right: 1rem;
+  top: 1rem;
   z-index: 2147483647;
 }
 
 .sfd-download-all-toast[data-tone="error"] {
   background: #ba0517;
+}
+
+.sfd-download-all-toast-check {
+  border-bottom: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  flex: 0 0 auto;
+  height: .65rem;
+  margin: 0 .7rem .2rem .1rem;
+  transform: rotate(-45deg);
+  width: 1.15rem;
+}
+
+.sfd-download-all-toast-message {
+  background: var(--sfd-toast-text-background, #032d60);
+  padding: 0 .15rem;
 }

@@ -6,6 +6,15 @@ body {
   width: 280px;
 }
 
+html[data-theme="dark"] body {
+  background: #101820;
+  color: #edf4fb;
+}
+
+html[data-theme="dark"] p {
+  color: #a8b7c7;
+}
+
 main {
   display: grid;
   gap: 12px;

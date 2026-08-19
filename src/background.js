@@ -1,4 +1,5 @@
 const DEFAULT_SETTINGS = {
+  saveLocationName: "Downloads",
   downloadSubfolder: "Salesforce Files/{accountName} - {caseNumber}",
   filenamePattern: "",
   conflictAction: "uniquify",
@@ -88,28 +89,36 @@ async function downloadAllFiles(payload, sender) {
   const pageCaseNumberRaw = sanitizeSegment(payload?.caseNumberRaw || payload?.caseNumber || "");
   const pageAccountName = sanitizeSegment(payload?.accountName || payload?.customerName || pageRecordName);
   const keepOriginalName = !String(settings.filenamePattern || "").trim();
+  const pageContext = { pageRecordName, pageCaseNumberRaw, pageAccountName, recordId: payload?.recordId };
+  const locationHandle = await getLocationHandle();
+
+  if (locationHandle) {
+    if (await locationHandle.queryPermission({ mode: "readwrite" }) !== "granted") {
+      throw new Error("The selected save location is no longer available. Choose it again in settings.");
+    }
+    const result = { count: files.length, downloadIds: [] };
+    void downloadFilesToDirectory(files, settings, pageContext, locationHandle)
+      .then((completed) => notifyDownloadStatus(sender?.tab?.id, {
+        status: "complete",
+        count: completed.count
+      }))
+      .catch((error) => notifyDownloadStatus(sender?.tab?.id, {
+        status: "error",
+        error: error.message
+      }));
+    return result;
+  }
 
   const downloadIds = [];
 
   for (const [index, file] of files.entries()) {
-    const fileAccountName = sanitizeSegment(file.accountName || file.customerName || pageAccountName);
-    const fileCaseNumberRaw = sanitizeSegment(file.caseNumberRaw || file.caseNumber || pageCaseNumberRaw);
-    const fileCaseNumber = sanitizeSegment(trimLeadingZeroes(fileCaseNumberRaw));
-    const fileRecordName = sanitizeSegment(file.recordName || pageRecordName);
-    const subfolder = renderTemplate(settings.downloadSubfolder, {
-      customerName: fileAccountName,
-      accountName: fileAccountName,
-      caseNumber: fileCaseNumber,
-      caseNumberRaw: fileCaseNumberRaw,
-      recordName: fileRecordName,
-      recordId: file.recordId || payload?.recordId || "record"
-    });
+    const fileInfo = buildFileInfo(file, index, pageContext, payload?.recordId, settings);
 
     // Register the routing/naming intent before starting the download so the
     // onDeterminingFilename listener can match it and apply the folder without
     // overriding Salesforce's authoritative filename + extension.
     pendingDownloads.set(file.url, {
-      folder: subfolder,
+      folder: fileInfo.folder,
       keepOriginalName,
       pattern: settings.filenamePattern,
       file,
@@ -129,7 +138,204 @@ async function downloadAllFiles(payload, sender) {
     downloadIds.push(downloadId);
   }
 
+  void monitorDownloadBatch(downloadIds, sender?.tab?.id);
   return { count: downloadIds.length, downloadIds };
+}
+
+async function monitorDownloadBatch(downloadIds, tabId) {
+  const results = await Promise.all(downloadIds.map(waitForDownload));
+  const interrupted = results.find((item) => item.state === "interrupted");
+
+  if (interrupted) {
+    notifyDownloadStatus(tabId, {
+      status: "error",
+      error: `A download failed${interrupted.error ? `: ${interrupted.error}` : "."}`
+    });
+    return;
+  }
+
+  notifyDownloadStatus(tabId, {
+    status: "complete",
+    count: results.length
+  });
+}
+
+async function waitForDownload(downloadId) {
+  const [current] = await chrome.downloads.search({ id: downloadId });
+  if (current?.state === "complete" || current?.state === "interrupted") {
+    return current;
+  }
+
+  return new Promise((resolve) => {
+    const listener = async (delta) => {
+      if (delta.id !== downloadId || !["complete", "interrupted"].includes(delta.state?.current)) {
+        return;
+      }
+
+      chrome.downloads.onChanged.removeListener(listener);
+      const [finished] = await chrome.downloads.search({ id: downloadId });
+      resolve(finished || { id: downloadId, state: delta.state.current });
+    };
+
+    chrome.downloads.onChanged.addListener(listener);
+  });
+}
+
+function notifyDownloadStatus(tabId, status) {
+  if (!tabId) {
+    return;
+  }
+
+  chrome.tabs.sendMessage(tabId, {
+    type: "SFD_DOWNLOAD_STATUS",
+    ...status
+  }).catch(() => {});
+}
+
+async function downloadFilesToDirectory(files, settings, pageContext, rootHandle) {
+  const completedFiles = [];
+
+  for (const [index, file] of files.entries()) {
+    const fileInfo = buildFileInfo(file, index, pageContext, pageContext.recordId, settings);
+    const directoryHandle = await getDirectoryHandle(rootHandle, fileInfo.folder);
+    const response = await fetch(file.url, { credentials: "include" });
+
+    if (!response.ok) {
+      throw new Error(`Salesforce returned ${response.status} while downloading ${fileInfo.name}.`);
+    }
+
+    const serverName = getResponseFileName(response.headers.get("content-disposition"));
+    const finalName = resolveFinalName(fileInfo, serverName);
+    const targetName = await resolveTargetName(directoryHandle, finalName, settings.conflictAction);
+    const outputHandle = await directoryHandle.getFileHandle(targetName, { create: true });
+    const writable = await outputHandle.createWritable();
+
+    try {
+      await writable.write(await response.arrayBuffer());
+      await writable.close();
+    } catch (error) {
+      await writable.abort();
+      throw error;
+    }
+
+    completedFiles.push(targetName);
+  }
+
+  return { count: completedFiles.length, downloadIds: [] };
+}
+
+function buildFileInfo(file, index, pageContext, recordId, settings) {
+  const fileAccountName = sanitizeSegment(file.accountName || file.customerName || pageContext.pageAccountName);
+  const fileCaseNumberRaw = sanitizeSegment(file.caseNumberRaw || file.caseNumber || pageContext.pageCaseNumberRaw);
+  const fileCaseNumber = sanitizeSegment(trimLeadingZeroes(fileCaseNumberRaw));
+  const fileRecordName = sanitizeSegment(file.recordName || pageContext.pageRecordName);
+  const folder = renderTemplate(settings.downloadSubfolder, {
+    customerName: fileAccountName,
+    accountName: fileAccountName,
+    caseNumber: fileCaseNumber,
+    caseNumberRaw: fileCaseNumberRaw,
+    recordName: fileRecordName,
+    recordId: file.recordId || recordId || "record"
+  });
+
+  return {
+    folder,
+    keepOriginalName: !String(settings.filenamePattern || "").trim(),
+    pattern: settings.filenamePattern,
+    file,
+    index: index + 1,
+    conflictAction: settings.conflictAction,
+    name: file.name || `Salesforce-File-${index + 1}`
+  };
+}
+
+async function getDirectoryHandle(rootHandle, folder) {
+  let directoryHandle = rootHandle;
+  const segments = String(folder || "")
+    .split("/")
+    .map(sanitizeSegment)
+    .filter(Boolean);
+
+  for (const segment of segments) {
+    directoryHandle = await directoryHandle.getDirectoryHandle(segment, { create: true });
+  }
+
+  return directoryHandle;
+}
+
+async function resolveTargetName(directoryHandle, fileName, conflictAction) {
+  if (conflictAction === "overwrite") {
+    return fileName;
+  }
+
+  if (conflictAction === "prompt" && await fileExists(directoryHandle, fileName)) {
+    throw new Error(`A file named ${fileName} already exists. Choose Keep both or Replace existing for this save location.`);
+  }
+
+  if (conflictAction !== "uniquify") {
+    return fileName;
+  }
+
+  const extension = getExtension(fileName);
+  const base = extension ? fileName.slice(0, -extension.length - 1) : fileName;
+  let candidate = fileName;
+  let suffix = 1;
+
+  while (await fileExists(directoryHandle, candidate)) {
+    candidate = extension ? `${base} (${suffix}).${extension}` : `${base} (${suffix})`;
+    suffix += 1;
+  }
+
+  return candidate;
+}
+
+async function fileExists(directoryHandle, fileName) {
+  try {
+    await directoryHandle.getFileHandle(fileName);
+    return true;
+  } catch (error) {
+    if (error.name === "NotFoundError") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function getResponseFileName(contentDisposition) {
+  const header = String(contentDisposition || "");
+  const encodedMatch = header.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+  if (encodedMatch) {
+    try {
+      return basename(decodeURIComponent(encodedMatch[1].trim()));
+    } catch {
+      return basename(encodedMatch[1].trim());
+    }
+  }
+
+  const quotedMatch = header.match(/filename\s*=\s*"([^"]+)"/i);
+  const plainMatch = header.match(/filename\s*=\s*([^;]+)/i);
+  return basename((quotedMatch || plainMatch)?.[1]?.trim() || "");
+}
+
+function getLocationHandle() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("salesforce-bulk-downloader", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("settings");
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const database = request.result;
+      const transaction = database.transaction("settings", "readonly");
+      const getRequest = transaction.objectStore("settings").get("downloadLocation");
+      getRequest.onsuccess = () => {
+        database.close();
+        resolve(getRequest.result || null);
+      };
+      getRequest.onerror = () => {
+        database.close();
+        reject(getRequest.error);
+      };
+    };
+  });
 }
 
 function resolveFinalName(info, serverName) {

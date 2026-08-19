@@ -8,6 +8,7 @@
   --muted: #5f6b7a;
   --line: #d9e1ea;
   --input: #fff;
+  --toast-preview-bg: #fff;
   --input-border: #b9c5d2;
   --status-bg: #e7f4ee;
   --status-border: #b7dfca;
@@ -29,6 +30,7 @@ html[data-theme="dark"] {
   --muted: #a8b7c7;
   --line: #2a3b4d;
   --input: #0f1823;
+  --toast-preview-bg: #162231;
   --input-border: #43576b;
   --status-bg: #122f25;
   --status-border: #2c6f57;
@@ -59,8 +61,65 @@ body {
   padding: 48px 24px;
 }
 
+.theme-control {
+  align-items: flex-end;
+  display: grid;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.theme-control .status {
+  justify-self: end;
+  margin-right: 4px;
+  text-align: center;
+  width: max-content;
+}
+
+.theme-control > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.segmented-control {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+}
+
+.segment {
+  background: var(--panel);
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--muted);
+  font-size: 12px;
+  min-height: 30px;
+  padding: 0 12px;
+}
+
+.theme-icon {
+  font-size: 18px;
+  line-height: 1;
+  min-width: 38px;
+  padding: 0 8px;
+}
+
+.segment:last-child {
+  border-right: 0;
+}
+
+.segment.active {
+  background: var(--brand);
+  color: #fff;
+}
+
 .hero {
-  align-items: end;
+  align-items: center;
   display: flex;
   gap: 24px;
   justify-content: space-between;
@@ -138,6 +197,16 @@ select {
   width: 100%;
 }
 
+.location-picker {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.location-picker button {
+  min-width: 92px;
+}
+
 input:focus,
 select:focus {
   border-color: var(--brand);
@@ -150,6 +219,214 @@ small {
   display: block;
   font-size: 12px;
   line-height: 1.35;
+}
+
+.token-list {
+  color: var(--muted);
+  font-size: 12px;
+  margin: -2px 0 0;
+  padding-left: 18px;
+}
+
+code {
+  color: var(--brand-strong);
+}
+
+.preview {
+  background: var(--input);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+
+.preview-label {
+  color: var(--muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.preview pre {
+  color: var(--text);
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.toast-settings {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 18px;
+  padding-top: 22px;
+}
+
+.toast-settings h2 {
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+
+.toast-settings p {
+  font-size: 13px;
+}
+
+.toast-text-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr;
+}
+
+.setting-with-reset {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.setting-with-reset input {
+  min-width: 0;
+}
+
+.reset-setting {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.reset-setting:hover {
+  background: var(--disabled-bg);
+  color: var(--text);
+}
+
+.toast-live-previews {
+  background: var(--toast-preview-bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  gap: 18px;
+  min-height: 240px;
+  padding: 14px;
+  position: relative;
+}
+
+.toast-preview-pair {
+  align-items: center;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: center;
+  min-height: 150px;
+}
+
+.toast-preview-pair > div {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.toast-control-bar {
+  align-items: end;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 -14px -14px;
+  padding: 10px 14px;
+  justify-content: center;
+}
+
+.toast-control {
+  position: relative;
+}
+
+.toast-control-trigger {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.toast-control-trigger:hover,
+.toast-control-trigger[aria-expanded="true"] {
+  background: var(--disabled-bg);
+  color: var(--text);
+}
+
+.toast-flyout {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  top: calc(100% + 8px);
+  box-shadow: 0 10px 24px var(--shadow);
+  display: grid;
+  gap: 10px;
+  min-width: 190px;
+  padding: 12px;
+  position: absolute;
+  right: 0;
+  z-index: 2;
+}
+.toast-flyout[hidden] {
+  display: none;
+}
+
+.toast-flyout label {
+  color: var(--text);
+  display: grid;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.toast-flyout input[type="color"] {
+  min-height: 38px;
+  padding: 4px;
+}
+
+.toast-flyout input[type="range"] {
+  accent-color: var(--brand);
+}
+
+.toast-flyout output {
+  color: var(--muted);
+  float: right;
+  font-weight: 500;
+}
+
+.toast-preview {
+  align-items: center;
+  border: 1px solid;
+  border-radius: .25rem;
+  display: flex;
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 28rem;
+  min-height: 44px;
+  padding: .75rem 1rem;
+  width: min(100%, 280px);
+}
+
+.toast-preview-message {
+  flex: 1;
+  padding: 0 .15rem;
+  text-align: center;
+}
+
+.toast-preview-check {
+  border-bottom: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  flex: 0 0 auto;
+  height: .65rem;
+  margin: 0 .7rem .2rem .1rem;
+  transform: rotate(-45deg);
+  width: 1.15rem;
 }
 
 .switch {
@@ -184,6 +461,39 @@ footer {
   padding-top: 22px;
 }
 
+.github-link {
+  align-items: center;
+  color: var(--brand);
+  display: inline-flex;
+  gap: 6px;
+  font-weight: 700;
+  margin-right: auto;
+  min-height: 42px;
+  text-decoration: none;
+}
+
+.github-mark {
+  height: 18px;
+  width: 18px;
+}
+
+.github-link:hover {
+  color: var(--brand-strong);
+  text-decoration: underline;
+}
+
+.reset-all {
+  background: transparent;
+  border-color: #ba0517;
+  color: #ba0517;
+  justify-self: start;
+}
+
+.reset-all:hover {
+  background: #fff1f1;
+  color: #8e030f;
+}
+
 button {
   background: var(--brand);
   border: 1px solid var(--brand);
@@ -213,6 +523,18 @@ button.secondary {
   .hero,
   .grid {
     display: grid;
+  }
+
+  .theme-control {
+    justify-content: space-between;
+  }
+
+  .toast-text-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toast-preview-pair {
+    grid-template-columns: 1fr;
   }
 
   h1 {

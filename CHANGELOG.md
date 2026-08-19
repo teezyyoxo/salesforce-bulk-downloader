@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2026-08-19
+
+- Bumped the extension version to `0.4.1`.
+
+### Added
+
+- Added a **Save location** folder picker with persistent directory-handle storage through the File System Access API, allowing users to select folders outside Chrome's Downloads directory.
+- Added Light, System, and Dark theme choices to the options page, using a sun, Auto, and moon control. The popup reflects the saved theme without exposing its own toggle.
+- Added live filesystem-style previews for case folder groupings and filename patterns, including representative Salesforce test values and bulleted placeholder lists.
+- Added a GitHub repository button with the GitHub Cat mark to the options page.
+- Added a native browser warning when closing the options page with unsaved changes.
+- Added live preview for toast notifications and a control toolbar with flyouts for toast appearance settings.
+- Added randomized visual demo styling to the toast control buttons on each options-page load, without changing saved configuration values.
+- Refined the Text Background demo to show color behind the button label, and fixed the Shadow Opacity and Shadow Blur demos to `.75` and `26`.
+- Added customization for started/completed notification text, text and background colors, border color, background opacity, shadow opacity, and shadow blur.
+- Added per-setting reset buttons with confirmation prompts and a confirmed red-bordered **Reset all settings** action.
+- Added a hardcoded CSS checkmark to completed notifications; blank custom notification text falls back to the default messages.
+
+### Changed
+
+- Downloads now write directly to the selected folder while preserving the existing case-folder and filename template options. Chrome Downloads remains the fallback when no folder has been selected.
+- The previous Downloads-subfolder setting is now a case folder grouping relative to the selected save location, with the existing Salesforce placeholder support preserved.
+- Toast notifications now appear in the top-right of Salesforce pages and report both download start and final completion or failure.
+- Toast customization now uses a full-width, theme-aware live preview with Started and Complete notifications shown side by side, centered with consistent spacing. Appearance controls are grouped in a centered bottom toolbar, with flyouts opening beneath each control.
+- Background opacity, shadow opacity, and shadow blur use sliders with live values.
+- **Ask every time** remains unavailable for conflicts when using a selected filesystem location; **Keep both** and **Replace existing** remain supported.
+- The selected save location displays its folder name because Chrome does not expose the full absolute path for a directory handle to extension code.
+
 ## [0.4.0] - 2026-07-07
 
 ### Fixed

@@ -6,9 +6,47 @@ const FILE_LINK_SELECTORS = [
   'a[href*="/lightning/r/ContentVersion/"]'
 ];
 
+const TOAST_DEFAULTS = {
+  toastStartedText: "Started {count} download{plural}.",
+  toastCompleteText: "Download complete: {count} file{plural}.",
+  toastTextColor: "#ffffff",
+  toastBackgroundColor: "#032d60",
+  toastTextBackgroundColor: "#032d60",
+  toastBorderColor: "#032d60",
+  toastBackgroundOpacity: 1,
+  toastShadowOpacity: 0.18,
+  toastShadowBlur: 24
+};
+
 let scanTimer = 0;
+let toastSettings = { ...TOAST_DEFAULTS };
 
 boot();
+void loadToastSettings();
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "sync") {
+    return;
+  }
+
+  for (const [key, change] of Object.entries(changes)) {
+    if (Object.hasOwn(TOAST_DEFAULTS, key)) {
+      toastSettings[key] = change.newValue ?? TOAST_DEFAULTS[key];
+    }
+  }
+});
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type !== "SFD_DOWNLOAD_STATUS") {
+    return;
+  }
+
+  if (message.status === "complete") {
+    showToast("complete", "info", { count: message.count });
+  } else if (message.status === "error") {
+    showToast(message.error || "Downloads failed.", "error");
+  }
+});
 
 function boot() {
   patchHistoryEvents();
@@ -102,7 +140,7 @@ async function handleDownloadAll(event) {
       throw new Error(response?.error || "Download failed.");
     }
 
-    showToast(`Started ${response.count} download${response.count === 1 ? "" : "s"}.`);
+    showToast("started", "info", { count: response.count });
   } catch (error) {
     showToast(error.message, "error");
   } finally {
@@ -570,17 +608,68 @@ function isVisible(node) {
   return Boolean(node?.offsetParent || node?.getClientRects().length);
 }
 
-function showToast(message, tone = "info") {
+async function loadToastSettings() {
+  const stored = await chrome.storage.sync.get(TOAST_DEFAULTS);
+  toastSettings = { ...TOAST_DEFAULTS, ...stored };
+}
+
+function showToast(message, tone = "info", values = {}) {
   const existing = document.querySelector(".sfd-download-all-toast");
   existing?.remove();
 
   const toast = document.createElement("div");
   toast.className = "sfd-download-all-toast";
   toast.dataset.tone = tone;
-  toast.textContent = message;
+
+  if (message === "complete") {
+    const checkmark = document.createElement("span");
+    checkmark.className = "sfd-download-all-toast-check";
+    checkmark.setAttribute("aria-hidden", "true");
+    toast.appendChild(checkmark);
+    appendToastMessage(toast, renderToastText(toastSettings.toastCompleteText || TOAST_DEFAULTS.toastCompleteText, values));
+  } else if (message === "started") {
+    appendToastMessage(toast, renderToastText(toastSettings.toastStartedText || TOAST_DEFAULTS.toastStartedText, values));
+  } else {
+    appendToastMessage(toast, message);
+  }
+
+  toast.style.setProperty("--sfd-toast-text-color", toastSettings.toastTextColor);
+  toast.style.setProperty("--sfd-toast-background", hexToRgba(toastSettings.toastBackgroundColor, toastSettings.toastBackgroundOpacity));
+  toast.style.setProperty("--sfd-toast-text-background", toastSettings.toastTextBackgroundColor);
+  toast.style.setProperty("--sfd-toast-border-color", toastSettings.toastBorderColor);
+  toast.style.setProperty("--sfd-toast-shadow-opacity", clamp(toastSettings.toastShadowOpacity));
+  toast.style.setProperty("--sfd-toast-shadow-blur", `${Math.max(0, Number(toastSettings.toastShadowBlur) || 0)}px`);
   document.body.appendChild(toast);
 
   window.setTimeout(() => toast.remove(), tone === "error" ? 7000 : 3500);
+}
+
+function appendToastMessage(toast, message) {
+  const text = document.createElement("span");
+  text.className = "sfd-download-all-toast-message";
+  text.textContent = message;
+  toast.appendChild(text);
+}
+
+function renderToastText(template, values) {
+  const count = Number(values.count) || 0;
+  return String(template || "")
+    .replace(/\{count\}/g, String(count))
+    .replace(/\{plural\}/g, count === 1 ? "" : "s");
+}
+
+function hexToRgba(color, opacity) {
+  const match = String(color || "").match(/^#([a-f\d]{6})$/i);
+  if (!match) {
+    return `rgba(3, 45, 96, ${clamp(opacity)})`;
+  }
+
+  const value = Number.parseInt(match[1], 16);
+  return `rgba(${value >> 16}, ${(value >> 8) & 255}, ${value & 255}, ${clamp(opacity)})`;
+}
+
+function clamp(value) {
+  return Math.min(1, Math.max(0, Number(value) || 0));
 }
 
 function patchHistoryEvents() {

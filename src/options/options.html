@@ -1,77 +1,225 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Salesforce Bulk File Downloader Settings</title>
-    <link rel="stylesheet" href="options.css">
-  </head>
-  <body>
-    <main class="shell">
-      <section class="hero">
-        <div>
-          <p class="eyebrow">Salesforce Bulk File Downloader</p>
-          <h1>Download defaults</h1>
-          <p>Choose how files are named and grouped when Chrome saves Salesforce attachments.</p>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salesforce Bulk File Downloader Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Salesforce Bulk File Downloader</p>
+        <h1>Download Defaults</h1>
+        <p>Bulk-download Salesforce case attachments into the folders and filenames that fit your workflow.</p>
+      </div>
+      <div class="theme-control" aria-label="Theme">
+        <div class="segmented-control" role="group" aria-label="Theme preference">
+          <button type="button" class="segment theme-icon" data-theme-choice="light" aria-label="Light theme"
+            title="Light theme">&#9728;</button>
+          <button type="button" class="segment" data-theme-choice="system" aria-label="Use system theme">Auto</button>
+          <button type="button" class="segment theme-icon" data-theme-choice="dark" aria-label="Dark theme"
+            title="Dark theme">&#9790;</button>
         </div>
         <span class="status" id="saveStatus" aria-live="polite">Saved</span>
-      </section>
+      </div>
+    </section>
 
-      <form class="panel" id="settingsForm">
+    <form class="panel" id="settingsForm">
+      <label class="field">
+        <span>Save Location</span>
+        <div class="location-picker">
+          <input name="saveLocationName" readonly value="Downloads" aria-describedby="saveLocationHelp">
+          <button type="button" class="secondary" id="chooseLocationButton">Browse</button>
+        </div>
+        <small id="saveLocationHelp">
+          Defaults to Chrome's Downloads folder (~/Downloads).<br>
+          Browse to any accessible folder on the filesystem.<br>
+          <strong>NOTE:</strong> Chrome does not expose the full absolute path of a selected folder.
+        </small>
+      </label>
+
+      <label class="field">
+        <span>Case Folder Grouping</span>
+        <input name="downloadSubfolder" autocomplete="off" placeholder="Salesforce Files/{accountName} - {caseNumber}">
+        <small>
+          Relative to the selected Save Location.<br>
+          <strong>Default:</strong><br>
+          Salesforce Files/{accountName} - {caseNumber}<br>
+          <br>Available placeholders:
+        </small>
+        <ul class="token-list">
+          <li><code>{accountName}</code> or <code>{customerName}</code></li>
+          <li><code>{caseNumber}</code> or <code>{caseNumberRaw}</code></li>
+          <li><code>{recordName}</code></li>
+          <li><code>{recordId}</code></li>
+        </ul>
+        <div class="preview" aria-live="polite">
+          <span class="preview-label">Folder Preview</span>
+          <pre id="folderPreview"></pre>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Filename Pattern</span>
+        <input name="filenamePattern" autocomplete="off"
+          placeholder="Leave blank to keep original filenames (recommended)">
+        <small>Leave blank to keep Salesforce's original filenames. Available placeholders:</small>
+        <ul class="token-list">
+          <li><code>{index}</code>, <code>{name}</code>, or <code>{ext}</code></li>
+          <li><code>{accountName}</code> or <code>{customerName}</code></li>
+          <li><code>{caseNumber}</code> or <code>{caseNumberRaw}</code></li>
+          <li><code>{recordName}</code></li>
+        </ul>
+        <div class="preview" aria-live="polite">
+          <span class="preview-label">Filename preview</span>
+          <pre id="filenamePreview"></pre>
+        </div>
+      </label>
+
+      <div class="grid">
         <label class="field">
-          <span>Downloads subfolder</span>
-          <input name="downloadSubfolder" autocomplete="off" placeholder="Salesforce Files/{accountName} - {caseNumber}">
-          <small>Relative to Chrome's Downloads folder. Supports {accountName}, {customerName}, {caseNumber}, {caseNumberRaw}, {recordName}, and {recordId}.</small>
+          <span>Existing Files</span>
+          <small>Decide what to do with existing files:</small>
+          <select name="conflictAction">
+            <option value="uniquify">Keep both</option>
+            <option value="overwrite">Replace existing</option>
+            <option value="prompt">Ask every time</option>
+          </select>
         </label>
 
-        <label class="field">
-          <span>Filename pattern</span>
-          <input name="filenamePattern" autocomplete="off" placeholder="Leave blank to keep original filenames">
-          <small>Leave blank to keep Salesforce's original filenames. Optional tokens: {index}, {name}, {ext}, {accountName}, {customerName}, {caseNumber}, {caseNumberRaw}, and {recordName}.</small>
-        </label>
+      </div>
 
-        <div class="grid">
-          <label class="field">
-            <span>Existing files</span>
-            <select name="conflictAction">
-              <option value="uniquify">Keep both</option>
-              <option value="overwrite">Replace existing</option>
-              <option value="prompt">Ask every time</option>
-            </select>
+      <section class="toast-settings" aria-labelledby="toastSettingsHeading">
+        <div>
+          <h2 id="toastSettingsHeading">Toast Notifications</h2>
+          <p>Customize status messages shown on Salesforce pages.<br>
+            Leave text blank to use the defaults.</p>
+        </div>
+
+        <div class="toast-text-grid">
+          <label class="field toast-setting">
+            <span>"Download started" notification text</span>
+            <div class="setting-with-reset">
+              <input name="toastStartedText" data-toast-setting autocomplete="off"
+                placeholder="Started {count} download{plural}.">
+              <button type="button" class="reset-setting" data-reset-setting="toastStartedText">Reset</button>
+            </div>
+            <small>Available token: <code>{count}</code>. <code>{plural}</code> adds an "s" when the count is not
+              1.</small>
           </label>
 
-          <label class="switch">
-            <input type="checkbox" name="promptForEachDownload">
-            <span>
-              <strong>Prompt for each download</strong>
-              <small>Useful while testing; slower for large file sets.</small>
-            </span>
+          <label class="field toast-setting">
+            <span>"Download complete" notification text</span>
+            <div class="setting-with-reset">
+              <input name="toastCompleteText" data-toast-setting autocomplete="off"
+                placeholder="Download complete: {count} file{plural}.">
+              <button type="button" class="reset-setting" data-reset-setting="toastCompleteText">Reset</button>
+            </div>
+            <small>Available token: <code>{count}</code>. The checkmark is always shown at the left.</small>
           </label>
         </div>
 
-        <label class="switch disabled">
-          <input type="checkbox" name="autoZip" disabled>
-          <span>
-            <strong>Auto-zip files</strong>
-            <small>Planned for a later version with a temporary packaging flow.</small>
-          </span>
-        </label>
+        <div class="toast-live-previews" aria-label="Toast preview">
+          <span class="preview-label">Live preview</span>
+          <div class="toast-preview-pair">
+            <div id="startedToastPreview"></div>
+            <div id="completeToastPreview"></div>
+          </div>
+          <div class="toast-control-bar" aria-label="Toast appearance controls">
+            <div class="toast-control">
+              <button type="button" class="toast-control-trigger" data-toast-control="toastTextColor"
+                aria-expanded="false">Text Color</button>
+              <div class="toast-flyout" data-toast-flyout="toastTextColor" hidden>
+                <label>Text color<input name="toastTextColor" data-toast-setting type="color"></label>
+                <button type="button" class="reset-setting" data-reset-setting="toastTextColor">Reset</button>
+              </div>
+            </div>
+            <div class="toast-control">
+              <button type="button" class="toast-control-trigger" data-toast-control="toastTextBackgroundColor"
+                aria-expanded="false">Text Background Color</button>
+              <div class="toast-flyout" data-toast-flyout="toastTextBackgroundColor" hidden>
+                <label>Text background<input name="toastTextBackgroundColor" data-toast-setting type="color"></label>
+                <button type="button" class="reset-setting" data-reset-setting="toastTextBackgroundColor">Reset</button>
+              </div>
+            </div>
+            <div class="toast-control">
+              <button type="button" class="toast-control-trigger" data-toast-control="toastBackgroundColor"
+                aria-expanded="false">Background Color</button>
+              <div class="toast-flyout" data-toast-flyout="toastBackgroundColor" hidden>
+                <label>Background color<input name="toastBackgroundColor" data-toast-setting type="color"></label>
+                <button type="button" class="reset-setting" data-reset-setting="toastBackgroundColor">Reset</button>
+              </div>
+            </div>
+            <div class="toast-control">
+              <button type="button" class="toast-control-trigger" data-toast-control="toastBorderColor"
+                aria-expanded="false">Border Color</button>
+              <div class="toast-flyout" data-toast-flyout="toastBorderColor" hidden>
+                <label>Border color<input name="toastBorderColor" data-toast-setting type="color"></label>
+                <button type="button" class="reset-setting" data-reset-setting="toastBorderColor">Reset</button>
+              </div>
+            </div>
+            <div class="toast-control">
+              <button type="button" class="toast-control-trigger" data-toast-control="toastBackgroundOpacity"
+                aria-expanded="false">Background Opacity</button>
+              <div class="toast-flyout" data-toast-flyout="toastBackgroundOpacity" hidden>
+                <label>Background opacity <output data-output-for="toastBackgroundOpacity"></output><input
+                    name="toastBackgroundOpacity" data-toast-setting type="range" min="0" max="1" step="0.05"></label>
+                <button type="button" class="reset-setting" data-reset-setting="toastBackgroundOpacity">Reset</button>
+              </div>
+            </div>
+            <div class="toast-control">
+              <button type="button" class="toast-control-trigger" data-toast-control="toastShadowOpacity"
+                aria-expanded="false">Shadow Opacity</button>
+              <div class="toast-flyout" data-toast-flyout="toastShadowOpacity" hidden>
+                <label>Shadow opacity <output data-output-for="toastShadowOpacity"></output><input
+                    name="toastShadowOpacity" data-toast-setting type="range" min="0" max="1" step="0.05"></label>
+                <button type="button" class="reset-setting" data-reset-setting="toastShadowOpacity">Reset</button>
+              </div>
+            </div>
+            <div class="toast-control">
+              <button type="button" class="toast-control-trigger" data-toast-control="toastShadowBlur"
+                aria-expanded="false">Shadow Blur</button>
+              <div class="toast-flyout" data-toast-flyout="toastShadowBlur" hidden>
+                <label>Shadow blur <output data-output-for="toastShadowBlur"></output>px<input name="toastShadowBlur"
+                    data-toast-setting type="range" min="0" max="100" step="1"></label>
+                <button type="button" class="reset-setting" data-reset-setting="toastShadowBlur">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        <label class="switch">
-          <input type="checkbox" name="darkMode">
-          <span>
-            <strong>Dark mode</strong>
-            <small>Use a darker appearance for this settings page.</small>
-          </span>
-        </label>
+      <label class="switch disabled">
+        <input type="checkbox" name="autoZip" disabled>
+        <span>
+          <strong>Auto-zip files</strong>
+          <small>Planned for a later version with a temporary packaging flow.</small>
+        </span>
+      </label>
 
-        <footer>
-          <button type="button" class="secondary" id="resetButton">Reset</button>
-          <button type="submit">Save settings</button>
-        </footer>
-      </form>
-    </main>
+      <footer>
+        <a class="github-link" href="https://github.com/teezyyoxo/salesforce-bulk-downloader" target="_blank"
+          rel="noopener noreferrer" aria-label="Open the Salesforce Bulk File Downloader GitHub repository"
+          title="Open GitHub repository">
+          <svg class="github-mark" aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+            <path fill="currentColor"
+              d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.084-.73.084-.73 1.205.084 1.84 1.237 1.84 1.237 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+          </svg>
+          GitHub
+          <span aria-hidden="true">&#8599;</span>
+        </a>
+        <button type="button" class="secondary" id="resetButton">Reset</button>
+        <button type="submit">Save settings</button>
+      </footer>
+      <button type="button" class="reset-all" id="resetAllButton">Reset all settings</button>
+    </form>
+  </main>
 
-    <script src="options.js"></script>
-  </body>
+  <script src="options.js"></script>
+</body>
+
 </html>
